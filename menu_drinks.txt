@@ -1,0 +1,4 @@
+15.00|Mineral Water
+25.00|Cold Cola
+40.00|Iced Green Tea
+40.00|Iced Thai Tea
