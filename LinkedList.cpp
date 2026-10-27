@@ -85,6 +85,100 @@ bool LinkedList::serveNextOrder(OrderNode &servedOrder)
     return true;
 }
 
+// Serve a specific order by Order ID anywhere in the queue (e.g. quick drinks/snacks ready first)
+bool LinkedList::serveOrderByID(int orderID, OrderNode &servedOrder)
+{
+    if (head == nullptr)
+        return false;
+
+    OrderNode *curr = head;
+    OrderNode *prev = nullptr;
+
+    while (curr != nullptr && curr->orderID != orderID)
+    {
+        prev = curr;
+        curr = curr->next;
+    }
+
+    if (curr == nullptr)
+        return false; // Order ID not found
+
+    servedOrder = *curr;
+
+    if (prev == nullptr)
+    {
+        head = head->next;
+    }
+    else
+    {
+        prev->next = curr->next;
+    }
+
+    delete curr;
+    size--;
+    return true;
+}
+
+// Move an existing order to a new queue position (1-based index)
+bool LinkedList::moveOrderPosition(int orderID, int newPosition)
+{
+    if (head == nullptr || newPosition < 1 || newPosition > size)
+        return false;
+
+    // 1. Locate the target node and its previous node
+    OrderNode *curr = head;
+    OrderNode *prev = nullptr;
+    int currentPos = 1;
+
+    while (curr != nullptr && curr->orderID != orderID)
+    {
+        prev = curr;
+        curr = curr->next;
+        currentPos++;
+    }
+
+    if (curr == nullptr)
+        return false; // Order ID not found
+
+    if (currentPos == newPosition)
+        return true; // Already at the desired position
+
+    // 2. Detach target node from its current position
+    if (prev == nullptr)
+    {
+        head = curr->next;
+    }
+    else
+    {
+        prev->next = curr->next;
+    }
+    curr->next = nullptr;
+
+    // 3. Re-insert target node at newPosition
+    if (newPosition == 1)
+    {
+        curr->next = head;
+        head = curr;
+    }
+    else
+    {
+        // Traverse to (newPosition - 1)-th node in the list
+        OrderNode *targetPrev = head;
+        for (int i = 1; i < newPosition - 1 && targetPrev != nullptr; i++)
+        {
+            targetPrev = targetPrev->next;
+        }
+
+        if (targetPrev != nullptr)
+        {
+            curr->next = targetPrev->next;
+            targetPrev->next = curr;
+        }
+    }
+
+    return true;
+}
+
 // Recursive helper to cancel order by Order ID anywhere in queue
 bool LinkedList::cancelOrderHelper(OrderNode *&node, int orderID, OrderNode &canceledOrder)
 {

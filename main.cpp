@@ -812,11 +812,13 @@ void adminManageKitchen()
         kitchenQueue.displayKitchenQueue();
 
         cout << "\n--- Kitchen Queue Operations (Linked List) ---\n";
-        cout << "1. Mark Next Order as Cooked (Dequeue Head -> Deliver & Bill to Table)\n";
-        cout << "2. Cancel Order by Order ID (Cancel Anywhere in Queue)\n";
+        cout << "1. Serve Next Order (Dequeue Head -> Deliver & Bill to Table)\n";
+        cout << "2. Serve Specific Order by Order ID (Deliver Ready Item Early)\n";
+        cout << "3. Move Order to New Queue Position (Reposition / Rush Order)\n";
+        cout << "4. Cancel Order by Order ID (Cancel Anywhere in Queue)\n";
         cout << "0. Back to Admin Panel\n";
         cout << "----------------------------------------------\n";
-        cout << "Select operation [0-2]: ";
+        cout << "Select operation [0-4]: ";
 
         int choice;
         if (!(cin >> choice))
@@ -841,7 +843,8 @@ void adminManageKitchen()
                     tables.getAt(tIdx).addServedFood(served.menuName, served.price);
                 }
 
-                cout << "\n[KITCHEN] Order Cooked & Ready!\n";
+                cout << "\n[KITCHEN] Next Order Cooked & Ready!\n";
+                cout << "   -> Order ID: #" << served.orderID << "\n";
                 cout << "   -> Item: " << served.menuName << " ($" << fixed << setprecision(2) << served.price << ")\n";
                 cout << "   -> Delivered to: [Table #" << served.tableNumber << "] and recorded to bill!\n";
             }
@@ -852,6 +855,75 @@ void adminManageKitchen()
             pauseConsole();
         }
         else if (choice == 2)
+        {
+            if (kitchenQueue.isEmpty())
+            {
+                cout << "\n[NOTICE] No pending orders in the kitchen right now!\n";
+                pauseConsole();
+                continue;
+            }
+
+            cout << "Enter Order ID to serve: ";
+            int serveID;
+            if (cin >> serveID)
+            {
+                OrderNode served;
+                if (kitchenQueue.serveOrderByID(serveID, served))
+                {
+                    int tIdx = findTableIndex(served.tableNumber);
+                    if (tIdx != -1)
+                    {
+                        tables.getAt(tIdx).addServedFood(served.menuName, served.price);
+                    }
+
+                    cout << "\n[KITCHEN] Specific Order Cooked & Ready!\n";
+                    cout << "   -> Order ID: #" << served.orderID << "\n";
+                    cout << "   -> Item: " << served.menuName << " ($" << fixed << setprecision(2) << served.price << ")\n";
+                    cout << "   -> Delivered to: [Table #" << served.tableNumber << "] and recorded to bill!\n";
+                }
+                else
+                {
+                    cout << "[ERROR] Order #" << serveID << " not found in kitchen queue!\n";
+                }
+            }
+            clearInput();
+            pauseConsole();
+        }
+        else if (choice == 3)
+        {
+            if (kitchenQueue.isEmpty())
+            {
+                cout << "\n[NOTICE] No pending orders in the kitchen right now!\n";
+                pauseConsole();
+                continue;
+            }
+
+            cout << "Enter Order ID to move: ";
+            int moveID;
+            if (cin >> moveID)
+            {
+                cout << "Enter new queue position [1-" << kitchenQueue.getSize() << "]: ";
+                int newPos;
+                if (cin >> newPos)
+                {
+                    if (kitchenQueue.moveOrderPosition(moveID, newPos))
+                    {
+                        cout << "\n[SUCCESS] Order #" << moveID << " successfully moved to queue position " << newPos << "!\n";
+                    }
+                    else
+                    {
+                        cout << "\n[ERROR] Failed to move order! Please check Order ID and position range (1-" << kitchenQueue.getSize() << ").\n";
+                    }
+                }
+                else
+                {
+                    cout << "[ERROR] Invalid position number!\n";
+                }
+            }
+            clearInput();
+            pauseConsole();
+        }
+        else if (choice == 4)
         {
             cout << "Enter Order ID to cancel: ";
             int cancelID;

@@ -36,6 +36,8 @@ public:
 
     void enqueueOrder(int orderID, int tableNumber, string menuName, double price);
     bool serveNextOrder(OrderNode &servedOrder);
+    bool serveOrderByID(int orderID, OrderNode &servedOrder);
+    bool moveOrderPosition(int orderID, int newPosition);
     bool cancelOrder(int orderID, OrderNode &canceledOrder);
 
     int countOrdersByTable(int tableNumber);
