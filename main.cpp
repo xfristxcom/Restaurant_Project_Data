@@ -1228,7 +1228,7 @@ void adminOpenShop()
     pauseConsole();
 }
 
-// Admin: Close Store Daily & Summarize Revenue
+// Admin: Close Store Daily & Summarize Revenue (Auto-serve & Auto-bill)
 void adminCloseShop()
 {
     clearScreen();
@@ -1236,57 +1236,87 @@ void adminCloseShop()
     cout << "             Daily Store Closing            \n";
     cout << "============================================\n";
 
+    int pendingQueue = kitchenQueue.getSize();
     int activeTables = 0;
-    double unpaidTotal = 0.0;
     for (int i = 0; i < tables.getSize(); i++)
     {
-        if (tables.getAt(i).isOccupied || tables.getAt(i).currentBill > 0)
+        if (tables.getAt(i).isOccupied || tables.getAt(i).currentBill > 0.0)
         {
             activeTables++;
-            unpaidTotal += tables.getAt(i).currentBill;
         }
     }
 
-    int pendingQueue = kitchenQueue.getSize();
-
     if (activeTables > 0 || pendingQueue > 0)
     {
-        cout << "[WARNING] Pre-closing Warnings:\n";
-        if (activeTables > 0)
-            cout << "   - " << activeTables << " table(s) have unpaid bills (Total unpaid: $" 
-                 << fixed << setprecision(2) << unpaidTotal << ")\n";
+        cout << "[NOTICE] Pre-closing pending activities detected:\n";
         if (pendingQueue > 0)
             cout << "   - " << pendingQueue << " item(s) pending in kitchen queue\n";
-        cout << "Are you sure you want to close and reset tables now? (y/n): ";
+        if (activeTables > 0)
+            cout << "   - " << activeTables << " table(s) currently active / seated\n";
+        cout << "\nClosing store will automatically:\n";
+        cout << "   1. Auto-serve all pending kitchen orders to their tables\n";
+        cout << "   2. Auto-bill and checkout all active tables\n";
+        cout << "   3. Finalize and record all sales to Total Daily Revenue\n";
+        cout << "--------------------------------------------\n";
+        cout << "Proceed with store closing? (y/n): ";
         char confirm;
         cin >> confirm;
         if (confirm != 'y' && confirm != 'Y')
         {
-            cout << "Closing cancelled.\n";
+            cout << "Store closing cancelled.\n";
+            clearInput();
             pauseConsole();
             return;
         }
     }
 
-    // Revenue Report
-    cout << "\n============================================\n";
-    cout << "         Daily Sales Summary Report         \n";
-    cout << "============================================\n";
-    cout << "Total Revenue Collected Today: $" << fixed << setprecision(2) << totalDailyRevenue << "\n";
-    cout << "Cleared Kitchen Queue: " << pendingQueue << " item(s) -> DONE\n";
-    cout << "Reset All Tables: " << tables.getSize() << " table(s) -> ALL FREE\n";
+    // 1. Auto-serve all pending orders in kitchen queue to their respective tables
+    int autoServedCount = 0;
+    OrderNode served;
+    while (kitchenQueue.serveNextOrder(served))
+    {
+        int tIdx = findTableIndex(served.tableNumber);
+        if (tIdx != -1)
+        {
+            tables.getAt(tIdx).addServedFood(served.menuName, served.price);
+            tables.getAt(tIdx).isOccupied = true;
+            autoServedCount++;
+        }
+    }
 
-    kitchenQueue.clear();
+    // 2. Auto-bill all active tables and accumulate into total daily revenue
+    int autoBilledTables = 0;
+    double autoBilledRevenue = 0.0;
     for (int i = 0; i < tables.getSize(); i++)
     {
-        tables.getAt(i).clearBill();
+        Table &t = tables.getAt(i);
+        if (t.isOccupied || t.currentBill > 0.0)
+        {
+            autoBilledTables++;
+            autoBilledRevenue += t.currentBill;
+            totalDailyRevenue += t.currentBill;
+            t.clearBill();
+        }
     }
+
+    // 3. Mark store as CLOSED and save persistent data
     isStoreOpen = false;
     saveAllData();
 
-    cout << "============================================\n";
-    cout << "Store status changed to: [ CLOSED ]\n";
+    // 4. Print final daily sales & closing report
+    cout << "\n======================================================\n";
+    cout << "         Daily Sales Summary & Closing Report         \n";
+    cout << "======================================================\n";
+    cout << "Auto-served from Kitchen:  " << autoServedCount << " item(s) -> ALL SERVED\n";
+    cout << "Auto-billed Active Tables: " << autoBilledTables << " table(s) (+$" 
+         << fixed << setprecision(2) << autoBilledRevenue << ")\n";
+    cout << "Reset All Tables:          " << tables.getSize() << " table(s) -> ALL FREE\n";
+    cout << "------------------------------------------------------\n";
+    cout << "FINAL TOTAL DAILY REVENUE: $" << fixed << setprecision(2) << totalDailyRevenue << "\n";
+    cout << "======================================================\n";
+    cout << "Store status changed to:   [ CLOSED ]\n";
     cout << "[INFO] Entered Back-office Maintenance Mode (Admins can configure menu & tables).\n";
+    clearInput();
     pauseConsole();
 }
 
